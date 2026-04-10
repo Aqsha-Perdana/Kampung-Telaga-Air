@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Destinasi;
 use App\Models\PaketWisata;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,7 +24,9 @@ class LandingPageController extends Controller
                 ->get();
         });
 
-        $paketWisatas = Cache::remember('landing.home.packages.v2', now()->addMinutes(5), function () {
+        $packageVersion = $this->packageCacheVersion();
+
+        $paketWisatas = Cache::remember("landing.home.packages.{$packageVersion}", now()->addMinutes(5), function () {
             return PaketWisata::query()
                 ->select([
                     'id_paket',
@@ -113,7 +116,9 @@ class LandingPageController extends Controller
     
     public function paketWisata(Request $request)
     {
+        $packageVersion = $this->packageCacheVersion();
         $cacheKey = 'landing.packages.' . md5(json_encode([
+            'version' => $packageVersion,
             'search' => (string) $request->input('search', ''),
             'page' => max((int) $request->input('page', 1), 1),
         ]));
@@ -154,20 +159,66 @@ class LandingPageController extends Controller
     
     public function detailPaket($id)
     {
-        $paket = Cache::remember("landing.package.{$id}.v2", now()->addMinutes(5), function () use ($id) {
+        $packageVersion = $this->packageCacheVersion($id);
+
+        $paket = Cache::remember("landing.package.{$id}.{$packageVersion}", now()->addMinutes(5), function () use ($id) {
             return PaketWisata::query()
+                ->select([
+                    'id_paket',
+                    'nama_paket',
+                    'durasi_hari',
+                    'minimum_participants',
+                    'maximum_participants',
+                    'deskripsi',
+                    'foto_thumbnail',
+                    'harga_jual',
+                    'diskon_nominal',
+                    'diskon_persen',
+                    'harga_final',
+                    'status',
+                ])
                 ->with([
-                    'destinasis.fotos',
-                    'homestays',
-                    'paketCulinaries.culinary',
-                    'boats',
-                    'kiosks',
-                    'itineraries',
+                    'destinasis' => fn ($query) => $query
+                        ->select(['destinasis.id_destinasi', 'destinasis.nama', 'destinasis.lokasi'])
+                        ->with(['fotos' => fn ($fotoQuery) => $fotoQuery->select(['id', 'id_destinasi', 'foto', 'urutan'])]),
+                    'homestays' => fn ($query) => $query->select(['homestays.id_homestay', 'homestays.nama', 'homestays.kapasitas', 'homestays.harga_per_malam']),
+                    'paketCulinaries' => fn ($query) => $query
+                        ->select([
+                            'paket_culinaries.id',
+                            'paket_culinaries.id_culinary',
+                            'paket_culinaries.nama_paket',
+                            'paket_culinaries.kapasitas',
+                            'paket_culinaries.harga',
+                            'paket_culinaries.deskripsi_paket',
+                        ])
+                        ->with(['culinary' => fn ($culinaryQuery) => $culinaryQuery->select(['id_culinary', 'nama'])]),
+                    'boats' => fn ($query) => $query->select(['boats.id_boat', 'boats.nama', 'boats.kapasitas', 'boats.harga_sewa']),
+                    'kiosks' => fn ($query) => $query->select(['kiosks.id_kiosk', 'kiosks.nama', 'kiosks.kapasitas', 'kiosks.harga_per_paket']),
+                    'itineraries' => fn ($query) => $query
+                        ->select(['id', 'id_paket', 'hari_ke', 'judul_hari', 'deskripsi_kegiatan'])
+                        ->orderBy('hari_ke'),
                 ])
                 ->where('status', 'aktif')
                 ->findOrFail($id);
         });
         
         return view('landing.detail-paket', compact('paket'));
+    }
+
+    private function packageCacheVersion(?string $packageId = null): string
+    {
+        $query = PaketWisata::query();
+
+        if ($packageId !== null) {
+            $query->where('id_paket', $packageId);
+        }
+
+        $latestUpdatedAt = $query->max('updated_at');
+        $count = (clone $query)->count();
+
+        return md5(json_encode([
+            'updated_at' => $latestUpdatedAt ? Carbon::parse($latestUpdatedAt)->format('Y-m-d H:i:s') : null,
+            'count' => $count,
+        ]));
     }
 }

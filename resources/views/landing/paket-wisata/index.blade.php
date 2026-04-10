@@ -110,6 +110,9 @@
         <div class="container">
             <div class="row g-4">
                 @forelse($paketWisata as $index => $paket)
+                @php
+                    $hasDiscount = ((float) ($paket->diskon_nominal ?? 0) > 0) || ((float) ($paket->diskon_persen ?? 0) > 0);
+                @endphp
                 <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ $index * 100 }}">
                     <div class="package-card h-100">
                         {{-- Foto Thumbnail (opsional) --}}
@@ -174,9 +177,9 @@
 
                             <!-- Price Section -->
                             <div class="package-price-section">
-                                @if($paket->diskon_nominal > 0 || $paket->diskon_persen > 0)
-                                    <div class="original-price">
-                                        <small class="text-decoration-line-through">
+                                @if($hasDiscount)
+                                    <div class="original-price d-flex align-items-center gap-2 flex-wrap mb-1">
+                                        <small class="text-decoration-line-through text-muted">
                                             {{ format_ringgit($paket->harga_jual) }}
                                         </small>
                                         <span class="badge bg-danger ms-2">
@@ -188,7 +191,7 @@
                                         </span>
                                     </div>
                                 @endif
-                                <div class="package-price">{{ format_ringgit($paket->harga_final) }}</div>
+                                <div class="package-price text-primary fw-bold">{{ format_ringgit($paket->harga_final) }}</div>
                                 <small class="text-muted">per Package</small>
                             </div>
 

@@ -100,7 +100,7 @@
                                         <i class="bi bi-tag-fill text-warning fs-4"></i>
                                     </div>
                                     <div>
-                                        <small class="text-muted d-block">Selling Price (Per Package)</small>
+                                        <small class="text-muted d-block">Selling Price (Per Booking)</small>
                                         <h5 class="mb-0 fw-bold text-warning">{{ format_ringgit($paketWisata->harga_jual) }}</h5>
                                         @if($paketWisata->tipe_diskon !== 'none')
                                             <small class="badge bg-danger">
@@ -122,7 +122,7 @@
                                         <i class="bi bi-currency-dollar text-info fs-4"></i>
                                     </div>
                                     <div>
-                                        <small class="text-muted d-block">Final Price (Per Package)</small>
+                                        <small class="text-muted d-block">Final Price (Per Booking)</small>
                                         <h5 class="mb-0 fw-bold text-info">{{ format_ringgit($paketWisata->harga_final) }}</h5>
                                         @php
                                             $profit = $paketWisata->harga_final - $paketWisata->harga_modal;
@@ -143,26 +143,26 @@
                             @endphp
                             <div class="card border-primary mb-0">
                                 <div class="card-header bg-primary text-white py-2">
-                                    <h6 class="mb-0"><i class="bi bi-cash-stack"></i> Company Profit Analysis</h6>
+                                    <h6 class="mb-0"><i class="bi bi-cash-stack"></i> Profit Analysis</h6>
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="row g-2">
                                         <div class="col-md-3 col-6">
                                             <small class="text-muted d-block">Cost Price</small>
-                                            <span class="fw-bold text-danger">RM {{ format_ringgit($paketWisata->harga_modal) }}</span>
+                                            <span class="fw-bold text-danger">{{ format_ringgit($paketWisata->harga_modal) }}</span>
                                         </div>
                                         <div class="col-md-3 col-6">
                                             <small class="text-muted d-block"><i class="bi bi-shield-check"></i> Pricing Buffer ({{ package_fee_buffer_label() }})</small>
-                                            <span class="fw-bold text-warning">RM {{ format_ringgit($pricingBufferShow) }}</span>
+                                            <span class="fw-bold text-warning">{{ format_ringgit($pricingBufferShow) }}</span>
                                         </div>
                                         <div class="col-md-3 col-6">
                                             <small class="text-muted d-block">Gross Profit</small>
-                                            <span class="fw-bold text-success">RM {{ format_ringgit($profit) }}</span>
+                                            <span class="fw-bold text-success">{{ format_ringgit($profit) }}</span>
                                         </div>
                                         <div class="col-md-3 col-6">
                                             <small class="text-muted d-block">Profit After Buffer</small>
                                             <span class="fw-bold {{ $netProfitShow >= 0 ? 'text-success' : 'text-danger' }}">
-                                                RM {{ format_ringgit($netProfitShow) }}
+                                                {{ format_ringgit($netProfitShow) }}
                                             </span>
                                         </div>
                                     </div>

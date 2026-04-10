@@ -129,12 +129,14 @@
                                         <div class="d-flex gap-2 align-items-center">
                                             @foreach($destinasi->fotos->take(3) as $foto)
                                                 <div class="position-relative">
-                                                    <img src="{{ asset('storage/'.$foto->foto) }}" 
-                                                         alt="{{ $destinasi->nama }}" 
-                                                         class="rounded shadow-sm" 
-                                                         style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
-                                                         data-bs-toggle="tooltip"
-                                                         title="Klik untuk memperbesar">
+                                                <img src="{{ asset('storage/'.$foto->foto) }}" 
+                                                     alt="{{ $destinasi->nama }}" 
+                                                     class="rounded shadow-sm" 
+                                                     loading="lazy"
+                                                     decoding="async"
+                                                     style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
+                                                     data-bs-toggle="tooltip"
+                                                     title="Klik untuk memperbesar">
                                                 </div>
                                             @endforeach
                                             @if($destinasi->fotos->count() > 3)
@@ -247,6 +249,8 @@
                                         <img src="{{ asset('storage/'.$foto->foto) }}" 
                                              class="d-block w-100" 
                                              alt="{{ $destinasi->nama }}"
+                                             loading="lazy"
+                                             decoding="async"
                                              style="height: 250px; object-fit: cover;">
                                     </div>
                                     @endforeach
@@ -267,10 +271,10 @@
                         @endif
                         
                         <!-- Photo Count Badge -->
-                        @if($destinasi->fotos->count() > 0)
+                        @if(($destinasi->fotos_count ?? $destinasi->fotos->count()) > 0)
                         <div class="position-absolute top-0 end-0 m-3">
                             <span class="badge bg-dark bg-opacity-75 shadow-sm">
-                                <i class="bi bi-camera-fill me-1"></i>{{ $destinasi->fotos->count() }} Foto
+                                <i class="bi bi-camera-fill me-1"></i>{{ $destinasi->fotos_count ?? $destinasi->fotos->count() }} Foto
                             </span>
                         </div>
                         @endif

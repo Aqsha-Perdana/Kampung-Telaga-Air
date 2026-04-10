@@ -26,10 +26,7 @@
         @method('PUT')
 
         <div class="row g-4">
-            <div class="col-lg-4">
-                @include('admin.paket-wisata.shared.left-column')
-            </div>
-
+            @include('admin.paket-wisata.shared.left-column')
             @include('admin.paket-wisata.shared.resources')
         </div>
 

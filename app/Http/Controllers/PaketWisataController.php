@@ -36,7 +36,7 @@ class PaketWisataController extends Controller
 
     public function index()
     {
-        $paketWisatas = PaketWisata::with(['destinasis', 'homestays', 'paketCulinaries', 'boats', 'kiosks'])
+        $paketWisatas = PaketWisata::withCount(['destinasis', 'homestays', 'paketCulinaries', 'boats', 'kiosks'])
             ->latest()
             ->paginate(10);
 

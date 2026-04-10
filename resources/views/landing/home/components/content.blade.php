@@ -252,15 +252,18 @@
                     </div>
 
                     <!-- Package Price -->
+                    @php
+                        $hasDiscount = ((float) ($paket->diskon_nominal ?? 0) > 0) || ((float) ($paket->diskon_persen ?? 0) > 0);
+                    @endphp
                     <div class="package-price-section text-center">
-                        @if($paket->diskon_nominal > 0 || $paket->diskon_persen > 0)
+                        @if($hasDiscount)
                             <div class="original-price">
                                 <small class="text-decoration-line-through">
                                     {{ format_ringgit($paket->harga_jual) }}
                                 </small>
                                 <span class="badge bg-danger">
                                     @if($paket->diskon_persen > 0)
-                                        -{{ format_ringgit($paket->diskon_persen) }}%
+                                        -{{ number_format($paket->diskon_persen, 0) }}%
                                     @else
                                         Discount
                                     @endif
@@ -269,7 +272,7 @@
                         @else
                             <div class="original-price"></div>
                         @endif
-                        <div class="package-price">{{ format_ringgit($paket->harga_jual) }}</div>
+                        <div class="package-price">{{ format_ringgit($paket->harga_final) }}</div>
                         <small class="text-muted">per Package</small>
                     </div>
 

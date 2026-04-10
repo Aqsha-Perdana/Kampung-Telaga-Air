@@ -2,43 +2,36 @@
 @if(isset($recommendationStats) && $recommendationStats['total_recommendations'] > 0)
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);">
-            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="recommendation-panel card border-0">
+            <div class="card-header bg-transparent border-0 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                 <div>
                     <h5 class="mb-0">
                         <i class="bi bi-lightbulb-fill text-warning"></i>
                         Smart Recommendations
                         <span class="badge bg-primary ms-2">{{ $recommendationStats['total_recommendations'] }} suggestions</span>
                     </h5>
-                    <small class="text-muted">AI-powered suggestions based on unused and low-performing resources</small>
+                    <small class="text-muted">Suggestions are optional helpers. Open them when you need inspiration, not on every package.</small>
                 </div>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#recommendationsPanel">
-                    <i class="bi bi-chevron-down"></i> Show/Hide
-                </button>
-            </div>
-            <div class="collapse show" id="recommendationsPanel">
-                <div class="card-body pt-0">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="bg-danger bg-opacity-10 rounded p-3 text-center">
-                                <h4 class="text-danger mb-0">{{ $recommendationStats['total_unused'] }}</h4>
-                                <small class="text-muted">Never Used</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="bg-warning bg-opacity-10 rounded p-3 text-center">
-                                <h4 class="text-warning mb-0">{{ $recommendationStats['total_never_sold'] }}</h4>
-                                <small class="text-muted">Never Sold</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="bg-info bg-opacity-10 rounded p-3 text-center">
-                                <h4 class="text-info mb-0">{{ $recommendationStats['total_low_performing'] }}</h4>
-                                <small class="text-muted">Low Performing</small>
-                            </div>
-                        </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="recommendation-summary-card bg-danger bg-opacity-10 border-danger-subtle">
+                        <strong class="text-danger">{{ $recommendationStats['total_unused'] }}</strong>
+                        <small class="text-muted">Never Used</small>
                     </div>
-
+                    <div class="recommendation-summary-card bg-warning bg-opacity-10 border-warning-subtle">
+                        <strong class="text-warning">{{ $recommendationStats['total_never_sold'] }}</strong>
+                        <small class="text-muted">Never Sold</small>
+                    </div>
+                    <div class="recommendation-summary-card bg-info bg-opacity-10 border-info-subtle">
+                        <strong class="text-info">{{ $recommendationStats['total_low_performing'] }}</strong>
+                        <small class="text-muted">Low Performing</small>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#recommendationsPanel">
+                        <i class="bi bi-stars"></i> Browse Suggestions
+                    </button>
+                </div>
+            </div>
+            <div class="collapse" id="recommendationsPanel">
+                <div class="card-body pt-0">
                     @if($recommendations['suggested_combo']['has_suggestions'])
                     <div class="alert alert-success mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -50,7 +43,7 @@
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($recommendations['suggested_combo']['items'] as $type => $item)
                             <span class="badge bg-white text-dark border">
-                                <i class="bi bi-{{ $type == 'boat' ? 'water' : ($type == 'homestay' ? 'house' : 'geo-alt') }}"></i>
+                                <i class="bi bi-{{ $type == 'boat' ? 'water' : ($type == 'homestay' ? 'house' : ($type == 'culinary' ? 'cup-hot' : ($type == 'kiosk' ? 'shop' : 'geo-alt'))) }}"></i>
                                 {{ $item['name'] }}
                                 <small class="text-muted">({{ $item['formatted_price'] }})</small>
                             </span>

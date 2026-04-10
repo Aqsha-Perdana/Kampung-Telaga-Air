@@ -399,7 +399,7 @@ function calculateProfit(modal) {
     // Profit Card Updates
     document.getElementById('display_final_price_profit').textContent = 'RM ' + formatRinggit(hargaFinal);
     document.getElementById('display_cost_price_profit').textContent = 'RM ' + formatRinggit(modal);
-    document.getElementById('display_stripe_fee').textContent = 'RM ' + formatRinggit(pricingBuffer);
+    document.getElementById('display_pricing_buffer').textContent = 'RM ' + formatRinggit(pricingBuffer);
     document.getElementById('display_profit').textContent = 'RM ' + formatRinggit(profit);
     document.getElementById('display_net_profit_after_fee').textContent = 'RM ' + formatRinggit(netProfitAfterFee);
     document.getElementById('display_profit_persen').textContent = profitPersen.toFixed(2) + '%';

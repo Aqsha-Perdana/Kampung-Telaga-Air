@@ -142,6 +142,8 @@
                                     <img src="{{ asset('storage/' . $homestay->foto) }}" 
                                          alt="{{ $homestay->nama }}" 
                                          class="rounded shadow-sm" 
+                                         loading="lazy"
+                                         decoding="async"
                                          style="width: 70px; height: 70px; object-fit: cover; cursor: pointer;"
                                          data-bs-toggle="tooltip"
                                          title="Klik untuk memperbesar">
@@ -250,6 +252,8 @@
                             <img src="{{ asset('storage/' . $homestay->foto) }}" 
                                  class="card-img-top" 
                                  alt="{{ $homestay->nama }}"
+                                 loading="lazy"
+                                 decoding="async"
                                  style="height: 200px; object-fit: cover;">
                         @else
                             <div class="bg-light d-flex align-items-center justify-content-center" 
