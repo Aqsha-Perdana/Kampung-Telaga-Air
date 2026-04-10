@@ -17,6 +17,34 @@ class XenditPaymentHelper
             ->json();
     }
 
+    public function getInvoice(string $invoiceId): array
+    {
+        return $this->client()
+            ->get('/v2/invoices/' . urlencode($invoiceId))
+            ->throw()
+            ->json();
+    }
+
+    public function listTransactions(array $query = []): array
+    {
+        return $this->client()
+            ->get('/transactions', array_filter($query, function ($value) {
+                return $value !== null && $value !== '' && $value !== [];
+            }))
+            ->throw()
+            ->json();
+    }
+
+    public function setWebhookUrl(string $type, string $url): array
+    {
+        return $this->client()
+            ->post('/callback_urls/' . urlencode($type), [
+                'url' => $url,
+            ])
+            ->throw()
+            ->json();
+    }
+
     public function verifyWebhookToken(?string $token): void
     {
         $expectedToken = (string) config('services.xendit.webhook_token');

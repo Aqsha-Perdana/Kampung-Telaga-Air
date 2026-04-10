@@ -22,9 +22,11 @@ class CheckoutService
 
     public function getCartItemsForUser(int $userId): Collection
     {
-        return Cart::with('paket')
+        $cartItems = Cart::with('paket')
             ->where('user_id', $userId)
             ->get();
+
+        return $this->synchronizeCartPrices($cartItems);
     }
 
     public function createOrderFromCart(array $validated, int $userId, array $context = []): array
@@ -34,6 +36,8 @@ class CheckoutService
                 ->where('user_id', $userId)
                 ->lockForUpdate()
                 ->get();
+
+            $cartItems = $this->synchronizeCartPrices($cartItems);
 
             if ($cartItems->isEmpty()) {
                 throw new InvalidArgumentException('Your cart is empty.');
@@ -174,7 +178,26 @@ class CheckoutService
 
     public function getHistoryForUser(int $userId, ?string $status): array
     {
-        $query = Order::with('items.paket')
+        Order::where('user_id', $userId)
+            ->where('status', 'pending')
+            ->where('payment_method', 'xendit')
+            ->latest('created_at')
+            ->limit(5)
+            ->get()
+            ->each(function (Order $order) {
+                $this->paymentGatewayService->syncPendingOrder($order);
+            });
+
+        $query = Order::with([
+            'items' => fn ($itemQuery) => $itemQuery->select([
+                'id',
+                'id_order',
+                'nama_paket',
+                'jumlah_peserta',
+                'tanggal_keberangkatan',
+                'subtotal',
+            ]),
+        ])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc');
 
@@ -285,6 +308,16 @@ class CheckoutService
                 (float) $item->subtotal
             );
 
+            $originalSubtotal = (float) ($item->paket->harga_jual ?? $item->subtotal ?? 0);
+            $netSubtotal = (float) ($item->subtotal ?? 0);
+            $discountAmount = max(0, $originalSubtotal - $netSubtotal);
+            $discountPercentage = $originalSubtotal > 0
+                ? round(($discountAmount / $originalSubtotal) * 100, 2)
+                : 0.0;
+            $discountType = $discountAmount > 0
+                ? (string) ($item->paket->tipe_diskon ?? 'none')
+                : 'none';
+
             OrderItem::create([
                 'id_order' => $order->id_order,
                 'id_paket' => $item->id_paket,
@@ -295,6 +328,10 @@ class CheckoutService
                 'catatan' => $item->catatan,
                 'harga_satuan' => $item->harga_satuan,
                 'subtotal' => $item->subtotal,
+                'original_subtotal' => $originalSubtotal,
+                'discount_amount' => $discountAmount,
+                'discount_percentage' => $discountPercentage,
+                'discount_type' => $discountType,
                 'boat_cost_total' => $snapshot['boat_total'],
                 'homestay_cost_total' => $snapshot['homestay_total'],
                 'culinary_cost_total' => $snapshot['culinary_total'],
@@ -353,5 +390,23 @@ class CheckoutService
 
             return true;
         });
+    }
+
+    private function synchronizeCartPrices(Collection $cartItems): Collection
+    {
+        foreach ($cartItems as $cartItem) {
+            $latestPrice = (float) ($cartItem->paket->harga_final ?? $cartItem->harga_satuan ?? 0);
+
+            if (
+                round((float) ($cartItem->harga_satuan ?? 0), 2) !== round($latestPrice, 2)
+                || round((float) ($cartItem->subtotal ?? 0), 2) !== round($latestPrice, 2)
+            ) {
+                $cartItem->harga_satuan = $latestPrice;
+                $cartItem->subtotal = $latestPrice;
+                $cartItem->save();
+            }
+        }
+
+        return $cartItems;
     }
 }

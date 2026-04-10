@@ -56,8 +56,8 @@ class XenditOrderService
                 'email' => (string) $order->customer_email,
                 'mobile_number' => (string) $order->customer_phone,
             ],
-            'success_redirect_url' => route('checkout.success', ['order_id' => $order->id_order]),
-            'failure_redirect_url' => route('checkout.failed', ['order_id' => $order->id_order]),
+            'success_redirect_url' => $this->publicRoute('checkout.success', ['order_id' => $order->id_order]),
+            'failure_redirect_url' => $this->publicRoute('checkout.failed', ['order_id' => $order->id_order]),
             'items' => $order->items->map(fn ($item) => [
                 'name' => (string) $item->nama_paket,
                 'quantity' => 1,
@@ -129,6 +129,32 @@ class XenditOrderService
         if ($order->status !== 'pending' || $order->payment_method !== 'xendit') {
             return;
         }
+
+        $invoiceId = $this->resolveInvoiceId($order);
+
+        if ($invoiceId === '') {
+            return;
+        }
+
+        try {
+            $invoice = $this->xenditPaymentHelper->getInvoice($invoiceId);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to sync pending Xendit order.', [
+                'order_id' => $order->id_order,
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        $status = strtoupper((string) ($invoice['status'] ?? ''));
+
+        match ($status) {
+            'PAID' => $this->handlePaymentSuccess($invoice),
+            'EXPIRED' => $this->handlePaymentExpired($invoice),
+            default => null,
+        };
     }
 
     public function cancelPendingPayment(Order $order): bool
@@ -289,6 +315,23 @@ class XenditOrderService
             && !empty($responseData['invoice_url']);
     }
 
+    private function resolveInvoiceId(Order $order): string
+    {
+        if (!empty($order->payment_intent_id)) {
+            return (string) $order->payment_intent_id;
+        }
+
+        $paymentLog = PaymentLog::query()
+            ->where('id_order', $order->id_order)
+            ->where('payment_method', 'xendit')
+            ->orderByDesc('id')
+            ->first();
+
+        $responseData = $this->normalizeResponseData($paymentLog?->response_data);
+
+        return (string) ($responseData['id'] ?? '');
+    }
+
     private function findPendingPaymentLog(string $orderId, string $reference = ''): ?PaymentLog
     {
         $baseQuery = PaymentLog::query()
@@ -331,10 +374,12 @@ class XenditOrderService
             }
         }
 
+        $normalizedGatewayAmounts = resolve_gateway_amounts($grossAmount, $feeAmount, $netAmount);
+
         return [
-            'fee_amount' => round($feeAmount ?? 0, 2),
+            'fee_amount' => $normalizedGatewayAmounts['fee_amount'],
             'fee_currency' => strtoupper((string) ($payload['currency'] ?? 'MYR')),
-            'net_amount' => round($netAmount ?? $grossAmount, 2),
+            'net_amount' => $normalizedGatewayAmounts['net_amount'],
             'payment_channel' => (string) ($payload['payment_channel'] ?? $payload['payment_method'] ?? $payload['bank_code'] ?? 'xendit'),
             'fee_source' => $feeSource,
         ];
@@ -354,8 +399,10 @@ class XenditOrderService
         $feeAmount = ($grossAmount * $percentage) + $fixed;
         $feeAmount = max($feeAmount, $minimum);
         $feeAmount = min($feeAmount, $grossAmount);
+        $feeAmount = round($feeAmount, 2);
+        $netAmount = round(max(0, $grossAmount - $feeAmount), 2);
 
-        return [round($feeAmount, 2), round(max(0, $grossAmount - $feeAmount), 2)];
+        return [$feeAmount, $netAmount];
     }
 
     private function toFloat(mixed $value): ?float
@@ -370,5 +417,12 @@ class XenditOrderService
     private function generateRedeemCode(): string
     {
         return 'KTA-' . strtoupper(Str::random(4)) . '-' . rand(1000, 9999);
+    }
+
+    private function publicRoute(string $routeName, array $parameters = []): string
+    {
+        $baseUrl = rtrim((string) config('services.xendit.public_url', config('app.url')), '/');
+
+        return $baseUrl . route($routeName, $parameters, false);
     }
 }

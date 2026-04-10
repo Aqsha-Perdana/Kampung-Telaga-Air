@@ -381,8 +381,8 @@ class StripeOrderService
             'fee_source' => 'estimated',
         ];
 
-        $chargeId = (string) ($paymentIntent->latest_charge ?? '');
-        if ($chargeId === '') {
+        $chargeId = $this->extractStripeId($paymentIntent->latest_charge ?? null);
+        if ($chargeId === null) {
             return $metrics;
         }
 
@@ -396,9 +396,15 @@ class StripeOrderService
 
             $metrics['fee_currency'] = strtoupper((string) ($charge->currency ?? $metrics['fee_currency']));
 
-            $balanceTransactionId = $charge->balance_transaction ?? null;
-            if (is_string($balanceTransactionId) && $balanceTransactionId !== '') {
+            $balanceTransactionId = $this->extractStripeId($charge->balance_transaction ?? null);
+            if ($balanceTransactionId !== null) {
                 $balanceTransaction = $this->stripePaymentHelper->retrieveBalanceTransaction($balanceTransactionId);
+                $metrics['fee_amount'] = round(((float) ($balanceTransaction->fee ?? 0)) / 100, 2);
+                $metrics['net_amount'] = round(((float) ($balanceTransaction->net ?? 0)) / 100, 2);
+                $metrics['fee_currency'] = strtoupper((string) ($balanceTransaction->currency ?? $metrics['fee_currency']));
+                $metrics['fee_source'] = 'actual';
+            } elseif (is_object($charge->balance_transaction ?? null)) {
+                $balanceTransaction = $charge->balance_transaction;
                 $metrics['fee_amount'] = round(((float) ($balanceTransaction->fee ?? 0)) / 100, 2);
                 $metrics['net_amount'] = round(((float) ($balanceTransaction->net ?? 0)) / 100, 2);
                 $metrics['fee_currency'] = strtoupper((string) ($balanceTransaction->currency ?? $metrics['fee_currency']));
@@ -414,6 +420,31 @@ class StripeOrderService
             ]);
         }
 
+        $normalizedGatewayAmounts = resolve_gateway_amounts(
+            $receivedAmount,
+            $metrics['fee_amount'] ?? 0,
+            $metrics['net_amount'] ?? null
+        );
+        $metrics['fee_amount'] = $normalizedGatewayAmounts['fee_amount'];
+        $metrics['net_amount'] = $normalizedGatewayAmounts['net_amount'];
+
         return $metrics;
+    }
+
+    private function extractStripeId(mixed $value): ?string
+    {
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+
+        if (is_object($value) && isset($value->id) && is_string($value->id) && $value->id !== '') {
+            return $value->id;
+        }
+
+        if (is_array($value) && isset($value['id']) && is_string($value['id']) && $value['id'] !== '') {
+            return $value['id'];
+        }
+
+        return null;
     }
 }

@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Requests\Checkout\ProcessCheckoutRequest;
 use App\Http\Requests\Checkout\RequestRefundRequest;
 use App\Services\CheckoutService;
+use App\Services\ExchangeRateService;
 use App\Services\PaymentGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,8 @@ class CheckoutController extends Controller
 {
     public function __construct(
         private readonly CheckoutService $checkoutService,
-        private readonly PaymentGatewayService $paymentGatewayService
+        private readonly PaymentGatewayService $paymentGatewayService,
+        private readonly ExchangeRateService $exchangeRateService
     ) {
         $this->middleware('auth')->except(['webhookStripe', 'webhookXendit']);
     }
@@ -54,6 +56,26 @@ class CheckoutController extends Controller
             'status' => $order->status,
             'redeem_code' => $order->redeem_code,
             'paid_at' => $order->paid_at?->toISOString(),
+        ]);
+    }
+
+    public function exchangeRate(string $currency)
+    {
+        $currency = strtoupper(trim($currency));
+        $supportedCurrencies = ['MYR', 'USD', 'IDR', 'SGD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY'];
+
+        if (!in_array($currency, $supportedCurrencies, true)) {
+            return response()->json([
+                'message' => 'Unsupported currency.',
+            ], 422);
+        }
+
+        $rate = $this->exchangeRateService->getRate($currency);
+
+        return response()->json([
+            'currency' => $currency,
+            'rate' => $rate,
+            'symbol' => $this->exchangeRateService->getSymbol($currency),
         ]);
     }
 
